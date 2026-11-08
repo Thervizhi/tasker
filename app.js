@@ -64,7 +64,7 @@ function vibrate(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
 function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
-    if (k.startsWith('on') && k !== 'onClick') node.addEventListener(k.slice(2).toLowerCase(), v);
+    if (k.startsWith('on')) node.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === 'className') node.className = v;
     else if (k === 'style') node.style.cssText = v;
     else node.setAttribute(k, v);
@@ -339,7 +339,7 @@ function flashNote(msg) {
   if (text) {
     state.tasks.push({ id: uid(), text: decodeURIComponent(text) });
     saveState(state);
-    history.replaceState({}, '', '/');
+    history.replaceState({}, '', window.location.pathname);
   }
 })();
 

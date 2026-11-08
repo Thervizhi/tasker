@@ -2,15 +2,15 @@
  * Tasker PWA Service Worker v2
  * Caches app shell for offline-first operation.
  */
-const CACHE_NAME = 'tasker-v2';
+const CACHE_NAME = 'tasker-v3';
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/manifest.json',
-  '/icon.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  './',
+  './index.html',
+  './app.js',
+  './manifest.json',
+  './icon.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,7 +39,7 @@ self.addEventListener('fetch', (event) => {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((c) => c.put(request, clone));
           return res;
-        }).catch(() => cached || caches.match('/index.html'));
+        }).catch(() => cached || caches.match('./index.html'));
       }
       if (cached) return cached;
       return fetch(request).then((res) => {
