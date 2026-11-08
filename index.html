@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0A0A0A">
+  <meta name="description" content="Minimalist Nothing OS to-do stack.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tasker">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Tasker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background-color: #0A0A0A;
+      background-image: radial-gradient(circle, rgba(255,255,255,.045) 1px, transparent 1.4px);
+      background-size: 9px 9px;
+      color: #F2F2F2;
+      font-family: ui-monospace, "Cascadia Code", "SF Mono", "JetBrains Mono", Consolas, Menlo, monospace;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+    .tasker-root {
+      width: 100%; max-width: 600px; margin: 0 auto;
+      padding: 24px 24px 40px; min-height: 100%;
+      display: flex; flex-direction: column;
+    }
+    .tasker-header {
+      display: flex; align-items: baseline; gap: 14px; margin-bottom: 4px; padding-top: 12px;
+    }
+    .tasker-title { font-size: 22px; font-weight: 700; letter-spacing: .32em; text-transform: uppercase; }
+    .tasker-tagline { font-size: 10px; letter-spacing: .26em; color: #8A8A8A; text-transform: uppercase; }
+    .tasker-dot { width: 8px; height: 8px; border-radius: 50%; background: #D71921; align-self: center; }
+    .tasker-label { margin: 20px 0 9px; font-size: 11px; letter-spacing: .24em; color: #8A8A8A; text-transform: uppercase; }
+
+    /* NOW CARD */
+    .tasker-now-card {
+      position: relative;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 18px 20px; border: 1px dashed #4A4A4A; border-radius: 8px;
+      background: rgba(255,255,255,.015);
+      transform: translateY(0); opacity: 1;
+      transition: transform .35s cubic-bezier(.22,1,.36,1), opacity .35s cubic-bezier(.22,1,.36,1);
+    }
+    .tasker-now-card.completing {
+      transform: translateX(110%) scale(.95); opacity: 0;
+    }
+    .tasker-now-card.entering {
+      animation: slideUpIn .35s cubic-bezier(.22,1,.36,1) both;
+    }
+    .tasker-now-text {
+      font-size: 20px; letter-spacing: .06em; text-transform: uppercase;
+      line-height: 1.4; word-break: break-word; flex: 1;
+    }
+
+    /* EMPTY / ALL CLEAR */
+    .tasker-empty { text-align: center; padding: 26px 0 10px; }
+    .tasker-empty-title { font-size: 17px; letter-spacing: .3em; text-transform: uppercase; }
+    .tasker-empty-hint { margin-top: 9px; font-size: 12px; letter-spacing: .12em; color: #8A8A8A; text-transform: uppercase; }
+    .tasker-all-clear {
+      text-align: center; padding: 30px 0 18px;
+      animation: clearPulse .6s cubic-bezier(.22,1,.36,1) both;
+    }
+    .tasker-all-clear-title {
+      font-size: 22px; letter-spacing: .4em; text-transform: uppercase; color: #4ADE80;
+      animation: clearScale .5s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .tasker-all-clear-sub { margin-top: 10px; font-size: 12px; letter-spacing: .15em; color: #4ADE80; opacity: .7; text-transform: uppercase; }
+    @keyframes clearScale { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes clearPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74,222,128,.0); }
+      40% { transform: scale(1.02); box-shadow: 0 0 20px 4px rgba(74,222,128,.12); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+    }
+
+    .tasker-undo { margin-top: 10px; margin-left: auto; }
+
+    /* STACK LIST */
+    .tasker-list { margin: 0; padding: 0; list-style: none; }
+    .tasker-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 4px;
+      border-bottom: 1px dashed #232323;
+      overflow: hidden; position: relative;
+    }
+    .tasker-row:last-child { border-bottom: none; }
+    .tasker-row-inner {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      transition: transform .3s cubic-bezier(.22,1,.36,1);
+      will-change: transform;
+    }
+    .tasker-row-inner.swiped { transform: translateX(-60px); }
+    .tasker-row-delete-bg {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
+      background: rgba(215,25,33,.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; letter-spacing: .2em; color: #D71921; text-transform: uppercase;
+      border-radius: 6px;
+    }
+    .tasker-index { width: 24px; font-size: 11px; letter-spacing: .1em; color: #8A8A8A; }
+    .tasker-row-text {
+      flex: 1; font-size: 14px; letter-spacing: .06em;
+      text-transform: uppercase; word-break: break-word;
+    }
+    .tasker-remove {
+      border: none; background: none; color: #8A8A8A; font: inherit; font-size: 18px;
+      line-height: 1; padding: 2px 8px; cursor: pointer; opacity: .6;
+      transition: opacity .12s, color .12s; border-radius: 4px; -webkit-appearance: none;
+    }
+    .tasker-remove:hover, .tasker-remove:active { opacity: 1; color: #D71921; }
+
+    /* ADD */
+    .tasker-add { display: flex; gap: 10px; margin-top: 4px; margin-bottom: 20px; }
+    .tasker-input {
+      flex: 1; font: inherit; color: #F2F2F2; background: #121212;
+      border: 1px solid #2A2A2A; border-radius: 6px; padding: 11px 14px;
+      letter-spacing: .05em; text-transform: uppercase; min-height: 42px;
+      -webkit-appearance: none;
+    }
+    .tasker-input:focus { outline: none; border-color: #D71921; }
+    .tasker-input::placeholder { color: #5A5A5A; letter-spacing: .12em; }
+
+    /* BUTTONS */
+    .tasker-btn {
+      font: inherit; text-transform: uppercase; letter-spacing: .14em;
+      background: transparent; color: #F2F2F2; border: 1px solid #3A3A3A;
+      border-radius: 6px; padding: 8px 16px; cursor: pointer;
+      transition: background .12s, color .12s, border-color .12s, opacity .12s;
+      -webkit-appearance: none; touch-action: manipulation; min-height: 42px;
+    }
+    .tasker-btn:hover, .tasker-btn:focus-visible, .tasker-btn:active {
+      background: #F2F2F2; color: #0A0A0A; border-color: #F2F2F2;
+    }
+    .tasker-btn-red { border-color: #D71921; color: #D71921; white-space: nowrap; }
+    .tasker-btn-red:hover, .tasker-btn-red:focus-visible, .tasker-btn-red:active {
+      background: #D71921; color: #0A0A0A; border-color: #D71921;
+    }
+    .tasker-btn-add { white-space: nowrap; }
+    .tasker-clear { margin-left: auto; }
+
+    /* DONE */
+    .tasker-done { margin-top: auto; padding-top: 20px; }
+    .tasker-muted { font-size: 12px; letter-spacing: .14em; color: #5A5A5A; text-transform: uppercase; }
+
+    /* OVERFLOW MENU */
+    .tasker-menu-wrap { position: relative; }
+    .tasker-menu-btn {
+      border: none; background: none; color: #5A5A5A; font-size: 20px;
+      cursor: pointer; padding: 4px 8px; margin-left: auto;
+      -webkit-appearance: none; line-height: 1;
+    }
+    .tasker-menu-btn:active { color: #F2F2F2; }
+    .tasker-menu {
+      position: absolute; right: 0; top: 100%; z-index: 10;
+      background: #161616; border: 1px solid #2A2A2A; border-radius: 8px;
+      overflow: hidden; min-width: 160px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5);
+      animation: menuIn .15s cubic-bezier(.22,1,.36,1) both;
+    }
+    .tasker-menu-item {
+      display: block; width: 100%; text-align: left;
+      padding: 12px 16px; font: inherit; font-size: 12px; letter-spacing: .1em;
+      text-transform: uppercase; color: #F2F2F2; background: none; border: none;
+      cursor: pointer; transition: background .1s;
+    }
+    .tasker-menu-item:active { background: #232323; }
+    @keyframes menuIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ANIMATIONS */
+    @keyframes slideUpIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes slideDownIn { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeOutDown { to { transform: translateY(-10px); opacity: 0; } }
+    .tasker-stack-row-enter { animation: slideDownIn .25s cubic-bezier(.22,1,.36,1) both; }
+    .tasker-row-removing { animation: fadeOutDown .25s cubic-bezier(.22,1,.36,1) both; }
+
+    @media (max-width: 480px) {
+      .tasker-root { padding: 16px 16px 32px; }
+      .tasker-now-card { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .tasker-now-text { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <section class="tasker-root" id="tasker-root"></section>
+  <script src="app.js"></script>
+</body>
+</html>
