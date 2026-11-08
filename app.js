@@ -120,7 +120,6 @@ function render() {
         el('div', { className: 'tasker-all-clear-title' }, t('allClear')),
         el('div', { className: 'tasker-all-clear-sub' }, t('allClearSub')),
       ]));
-      vibrate([30, 50, 30, 50, 60]);
     } else {
       nowSection.appendChild(el('div', { className: 'tasker-empty' }, [
         el('div', { className: 'tasker-empty-title' }, t('empty')),
@@ -202,7 +201,7 @@ function makeRow(task, index) {
   const onMove = (e) => {
     if (!dragging) return;
     const touch = e.touches ? e.touches[0] : e;
-    deltaX = Math.min(0, Math.max(-60, touch.clientX - startX));
+    deltaX = Math.min(0, Math.max(-80, touch.clientX - startX));
     inner.style.transform = `translateX(${deltaX}px)`;
     e.preventDefault();
   };
@@ -210,10 +209,10 @@ function makeRow(task, index) {
     if (!dragging) return;
     dragging = false;
     inner.style.transition = 'transform .3s cubic-bezier(.22,1,.36,1)';
-    if (deltaX < -35) {
+    if (deltaX < -40) {
       inner.style.transform = 'translateX(-80px)';
       inner.style.opacity = '0';
-      setTimeout(() => removeTask(task.id), 200);
+      setTimeout(() => removeTask(task.id), 320);
     } else {
       inner.style.transform = '';
       inner.style.opacity = '';
@@ -239,20 +238,23 @@ function addTask() {
   const text = draft.trim();
   if (!text) return;
   draft = '';
-  vibrate(10);
+  vibrate(50);
   commit({ tasks: [...state.tasks, { id: uid(), text }], done: state.done });
 }
 
 function completeTop(btn) {
   if (!state.tasks.length) return;
+  const isLast = state.tasks.length === 1;
+  const buzz = isLast ? [30, 50, 30, 50, 60] : [40, 30, 80];
   const card = btn.closest('.tasker-now-card');
   if (card) {
     card.classList.add('completing');
-    vibrate([40, 30, 80]); // satisfying triple-buzz
+    vibrate(buzz); // must run in the tap handler for Android to allow it
     setTimeout(() => {
       commit({ tasks: state.tasks.slice(1), done: [...state.done, state.tasks[0]] });
     }, 320);
   } else {
+    vibrate(buzz);
     commit({ tasks: state.tasks.slice(1), done: [...state.done, state.tasks[0]] });
   }
 }
